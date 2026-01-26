@@ -65,7 +65,9 @@ Copyright 2013 Linear Technology Corp. (LTC)
 // #include "LT_SPI.h"
 // #include <SPI.h>
 #include "LTC68041.h"
+#include "BSPSPI.h"
 #include <stdint.h>
+#include <stdlib.h>
 
 /*!
   6804 conversion command variables.  
@@ -145,27 +147,25 @@ Command Code:
 ***********************************************************************************************/
 void LTC6804_adcv()
 {
-
-  uint8_t cmd[4];
-  uint16_t cmd_pec;
-  
-  //1
-  cmd[0] = ADCV[0];
-  cmd[1] = ADCV[1];
-  
-  //2
-  cmd_pec = pec15_calc(2, ADCV);
-  cmd[2] = (uint8_t)(cmd_pec >> 8);
-  cmd[3] = (uint8_t)(cmd_pec);
-  
-  //3
-  wakeup_idle (); //This will guarantee that the LTC6804 isoSPI port is awake. This command can be removed.
-  
-  //4
-  output_low(LTC6804_CS);
-  spi_write_array(4,cmd);
-  output_high(LTC6804_CS);
-
+    uint8_t cmd[4];
+    uint16_t cmd_pec;
+    
+    /* 1. Load adcv command into cmd array */
+    cmd[0] = ADCV[0];
+    cmd[1] = ADCV[1];
+    
+    /* 2. Calculate adcv cmd PEC and load pec into cmd array */
+    cmd_pec = pec15_calc(2, ADCV);
+    cmd[2] = (uint8_t)(cmd_pec >> 8);
+    cmd[3] = (uint8_t)(cmd_pec);
+    
+    /* 3. Wakeup isoSPI port */
+    wakeup_idle();
+    
+    /* 4. Send broadcast adcv command to LTC6804 daisy chain */
+    output_low(LTC6804_CS);
+    spi_write_array(4, cmd);
+    output_high(LTC6804_CS);
 }
 /*
   LTC6804_adcv Function sequence:
@@ -979,51 +979,7 @@ uint16_t pec15_calc(uint8_t len, //Number of bytes that will be used to calculat
 }
 
 
-/*!
- \brief Writes an array of bytes out of the SPI port
- 
- @param[in] uint8_t len length of the data array being written on the SPI port
- @param[in] uint8_t data[] the data array to be written on the SPI port
- 
-*/
-void spi_write_array(uint8_t len, // Option: Number of bytes to be written on the SPI port
-					 uint8_t data[] //Array of bytes to be written on the SPI port
-					 )
-{
-  for(uint8_t i = 0; i < len; i++)
-  {
-     spi_write((int8_t)data[i]);
-  }
-}
-
-/*!
- \brief Writes and read a set number of bytes using the SPI port.
-
-@param[in] uint8_t tx_data[] array of data to be written on the SPI port
-@param[in] uint8_t tx_len length of the tx_data array
-@param[out] uint8_t rx_data array that read data will be written too. 
-@param[in] uint8_t rx_len number of bytes to be read from the SPI port.
-
-*/
-
-void spi_write_read(uint8_t tx_Data[],//array of data to be written on SPI port 
-					uint8_t tx_len, //length of the tx data arry
-					uint8_t *rx_data,//Input: array that will store the data read by the SPI port
-					uint8_t rx_len //Option: number of bytes to be read from the SPI port
-					)
-{
-  for(uint8_t i = 0; i < tx_len; i++)
-  {
-   spi_write(tx_Data[i]);
-
-  }
-
-  for(uint8_t i = 0; i < rx_len; i++)
-  {
-    rx_data[i] = (uint8_t)spi_read(0xFF);
-  }
-
-}
+/* SPI 写入和读取函数已在 spi_hal.c 中实现，这里不再重复定义 */
 
 
 

@@ -3,6 +3,8 @@
 # ========================
 Library/
 CMSIS/
+Tools/
+Linker/
 
 # ========================
 # 编译产物
@@ -64,3 +66,11 @@ Release/
 # ========================
 .DS_Store
 Thumbs.db
+
+# ========================
+# 其他
+# ========================
+CMakeLists.txt
+toolchain.cmake
+CodeNote.md
+CodeNoteImg/
