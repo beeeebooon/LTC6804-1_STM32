@@ -85,8 +85,7 @@ uint8_t ADAX[2]; //!< GPIO conversion command.
 */
 void LTC6804_initialize()
 {
-  quikeval_SPI_connect();
-  spi_enable(SPI_CLOCK_DIV16); // This will set the Linduino to have a 1MHz Clock
+  // SPI初始化将在主函数中实现
   set_adc(MD_NORMAL,DCP_DISABLED,CELL_CH_ALL,AUX_CH_ALL);
 }
 
@@ -979,7 +978,7 @@ uint16_t pec15_calc(uint8_t len, //Number of bytes that will be used to calculat
 }
 
 
-/* SPI 写入和读取函数已在 spi_hal.c 中实现，这里不再重复定义 */
+/* SPI 写入和读取函数已在 BSPSPI.c 中实现，这里不再重复定义 */
 
 
 

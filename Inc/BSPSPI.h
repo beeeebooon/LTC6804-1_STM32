@@ -12,16 +12,6 @@
 
 /* ==================== SPI 配置宏定义 ==================== */
 
-/* SPI 时钟分频（BaudRate Prescaler） */
-#define SPI_CLOCK_DIV2    SPI_BaudRatePrescaler_2
-#define SPI_CLOCK_DIV4    SPI_BaudRatePrescaler_4
-#define SPI_CLOCK_DIV8    SPI_BaudRatePrescaler_8
-#define SPI_CLOCK_DIV16   SPI_BaudRatePrescaler_16
-#define SPI_CLOCK_DIV32   SPI_BaudRatePrescaler_32
-#define SPI_CLOCK_DIV64   SPI_BaudRatePrescaler_64
-#define SPI_CLOCK_DIV128  SPI_BaudRatePrescaler_128
-#define SPI_CLOCK_DIV256  SPI_BaudRatePrescaler_256
-
 /* GPIO 和 SPI 端口配置 */
 #define SPI_PORT          SPI1
 #define SPI_GPIO_PORT     GPIOA
@@ -38,7 +28,7 @@
 /**
  * @brief 初始化 SPI 接口
  */
-void quikeval_SPI_connect(void);
+void SPIInit(void);
 
 /**
  * @brief 启用 SPI 并配置时钟分频

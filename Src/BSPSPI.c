@@ -29,8 +29,33 @@ void SysTick_Handler(void)
  */
 void SPIInit(void)
 {
-    SPI_TypeDef* SPIChn = SPI1;
+    SPI_TypeDef* SPIChn = SPI_PORT;
     SPI_InitTypeDef SPI_InitStruct;
+    GPIO_InitTypeDef GPIO_InitStruct;
+
+    // 使能时钟
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    
+    // 配置CLK、MOSI为复用推挽输出，由SPI外设控制
+    GPIO_InitStruct.GPIO_Pin = SPI_PIN_CLK | SPI_PIN_MOSI;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPI_GPIO_PORT, &GPIO_InitStruct);
+
+    // 配置CS为普通推挽输出，由软件控制
+    GPIO_InitStruct.GPIO_Pin = SPI_PIN_CS;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPI_GPIO_PORT, &GPIO_InitStruct);
+
+    GPIO_SetBits(SPI_GPIO_PORT, SPI_PIN_CS);  // CS 默认为高电平（空闲状态）
+
+    // 配置MISO为浮空输入，从设备上拉
+    GPIO_InitStruct.GPIO_Pin = SPI_PIN_MISO;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPI_GPIO_PORT, &GPIO_InitStruct);
 
     /* 初始化SPI结构体 */
     SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;  // 全双工
@@ -44,67 +69,9 @@ void SPIInit(void)
     SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;                    // LTC6804要求MSB先行
 
     SPI_Init(SPIChn, &SPI_InitStruct);
+    SPI_Cmd(SPIChn, ENABLE);  // 使能SPI
 }
 
-// void quikeval_SPI_connect(void)
-// {
-//     GPIO_InitTypeDef GPIO_InitStruct;
-//     SPI_InitTypeDef SPI_InitStruct;
-    
-//     /* 启用时钟 */
-//     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_SPI1, ENABLE);
-    
-//     /* 配置 SPI1 GPIO 管脚：CLK(PA5)、MISO(PA6)、MOSI(PA7) */
-//     GPIO_InitStruct.GPIO_Pin = SPI_PIN_CLK | SPI_PIN_MISO | SPI_PIN_MOSI;
-//     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
-//     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-//     GPIO_Init(SPI_GPIO_PORT, &GPIO_InitStruct);
-    
-//     /* 配置 CS 管脚（PA4）为普通输出 */
-//     GPIO_InitStruct.GPIO_Pin = SPI_PIN_CS;
-//     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-//     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-//     GPIO_Init(SPI_GPIO_PORT, &GPIO_InitStruct);
-    
-//     /* CS 默认为高电平（未选中） */
-//     GPIO_SetBits(SPI_GPIO_PORT, SPI_PIN_CS);
-    
-//     /* 配置 SPI1 */
-//     SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-//     SPI_InitStruct.SPI_Mode = SPI_Mode_Master;
-//     SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b;
-//     SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;
-//     SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;
-//     SPI_InitStruct.SPI_NSS = SPI_NSS_Soft;
-//     SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
-//     SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
-//     SPI_InitStruct.SPI_CRCPolynomial = 7;
-    
-//     SPI_Init(SPI_PORT, &SPI_InitStruct);
-//     SPI_Cmd(SPI_PORT, ENABLE);
-// }
-
-/**
- * @brief 启用 SPI 并设置时钟分频
- * @param clock_div 时钟分频系数
- */
-void spi_enable(uint16_t clock_div)
-{
-    SPI_InitTypeDef SPI_InitStruct;
-    
-    SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-    SPI_InitStruct.SPI_Mode = SPI_Mode_Master;
-    SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b;
-    SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;
-    SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;
-    SPI_InitStruct.SPI_NSS = SPI_NSS_Soft;
-    SPI_InitStruct.SPI_BaudRatePrescaler = clock_div;
-    SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
-    SPI_InitStruct.SPI_CRCPolynomial = 7;
-    
-    SPI_Init(SPI_PORT, &SPI_InitStruct);
-    SPI_Cmd(SPI_PORT, ENABLE);
-}
 
 /**
  * @brief 通过 SPI 收发一个字节
