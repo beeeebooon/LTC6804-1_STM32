@@ -23,75 +23,13 @@
 /* 片选脚 GPIO 值 */
 #define QUIKEVAL_CS       4  /* PA4 作为片选脚 */
 
-/* ==================== 函数声明 ==================== */
-
-/**
- * @brief 初始化 SPI 接口
- */
+/* ==================== SPI 函数声明 ==================== */
 void SPIInit(void);
+void SPIWriteByte(SPI_TypeDef* SPICh, u16 comm);
+void SPIRead(SPI_TypeDef* SPICh, u16 comm, u8* data, u8 len);
 
-/**
- * @brief 启用 SPI 并配置时钟分频
- * @param clock_div SPI 时钟分频系数（使用 SPI_CLOCK_DIV_* 宏）
- */
-void spi_enable(uint16_t clock_div);
-
-/**
- * @brief 通过 SPI 接收一个字节
- * @param data 要发送的字节（为了获得返回数据）
- * @return 接收到的字节
- */
-uint8_t spi_read(uint8_t data);
-
-/**
- * @brief 通过 SPI 发送一个字节
- * @param data 要发送的字节
- */
-void spi_write(int8_t data);
-
-/**
- * @brief 通过 SPI 同时发送和接收数据
- * @param tx_data 发送数据缓冲区
- * @param tx_len 发送数据长度
- * @param rx_data 接收数据缓冲区
- * @param rx_len 接收数据长度
- */
-void spi_write_read(uint8_t *tx_data, uint8_t tx_len, uint8_t *rx_data, uint8_t rx_len);
-
-/**
- * @brief 通过 SPI 发送一组字节
- * @param length 数据长度
- * @param data 数据缓冲区指针
- */
-void spi_write_array(uint8_t length, uint8_t *data);
-
-/* ==================== GPIO 控制函数 ==================== */
-
-/**
- * @brief 设置 GPIO 管脚为低电平
- * @param pin GPIO 管脚（如 QUIKEVAL_CS）
- */
-void output_low(uint8_t pin);
-
-/**
- * @brief 设置 GPIO 管脚为高电平
- * @param pin GPIO 管脚（如 QUIKEVAL_CS）
- */
-void output_high(uint8_t pin);
-
-/* ==================== 延时函数 ==================== */
-
-/**
- * @brief 延时（毫秒）
- * @param ms 毫秒数
- */
-void delay(uint32_t ms);
-
-/**
- * @brief 延时（微秒）
- * @param us 微秒数
- */
-void delayMicroseconds(uint32_t us);
+void BSP_SPI_CS_Low(void);
+void BSP_SPI_CS_High(void);
+void SPI_WaitIdle(SPI_TypeDef* SPICh);
 
 #endif /* SPI_HAL_H */
-

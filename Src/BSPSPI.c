@@ -7,21 +7,6 @@
 #include "BSPSPI.h"
 #include "stm32f10x.h"
 
-/* 静态变量：用于保存 SysTick 计数 */
-static volatile uint32_t g_systick_ms = 0;
-
-/* ==================== SysTick 中断处理 ==================== */
-
-/**
- * @brief SysTick 中断处理函数
- */
-void SysTick_Handler(void)
-{
-    if (g_systick_ms > 0) {
-        g_systick_ms--;
-    }
-}
-
 /* ==================== SPI 初始化和控制 ==================== */
 
 /**
@@ -68,124 +53,61 @@ void SPIInit(void)
     SPI_InitStruct.SPI_NSS = SPI_NSS_Soft;                            // CS由GPIO控制
     SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;                    // LTC6804要求MSB先行
 
+    SPI_I2S_ITConfig(SPIChn, SPI_I2S_IT_RXNE, ENABLE); // 使能接收中断
     SPI_Init(SPIChn, &SPI_InitStruct);
     SPI_Cmd(SPIChn, ENABLE);  // 使能SPI
 }
 
 
 /**
- * @brief 通过 SPI 收发一个字节
- * @param data 要发送的字节
- * @return 接收到的字节
+ * @brief SPI 发送数据或数据
+ * @param SPICh SPI 通道
+ * @param comm LTC6804指令
  */
-uint8_t spi_read(uint8_t data)
+void SPIWriteByte(SPI_TypeDef* SPICh, u16 comm)
 {
-    /* 等待发送缓冲为空 */
-    while (SPI_I2S_GetFlagStatus(SPI_PORT, SPI_I2S_FLAG_TXE) == RESET);
-    
-    /* 发送数据 */
-    SPI_I2S_SendData(SPI_PORT, data);
-    
-    /* 等待接收缓冲非空 */
-    while (SPI_I2S_GetFlagStatus(SPI_PORT, SPI_I2S_FLAG_RXNE) == RESET);
-    
-    /* 返回接收到的数据 */
-    return SPI_I2S_ReceiveData(SPI_PORT);
-}
+    u8 j = 0;
 
-/**
- * @brief 通过 SPI 发送一个字节
- * @param data 要发送的字节
- */
-void spi_write(int8_t data)
-{
-    spi_read((uint8_t)data);
-}
-
-/**
- * @brief 通过 SPI 同时发送和接收数据
- * @param tx_data 发送数据缓冲区
- * @param tx_len 发送数据长度
- * @param rx_data 接收数据缓冲区
- * @param rx_len 接收数据长度
- */
-void spi_write_read(uint8_t *tx_data, uint8_t tx_len, uint8_t *rx_data, uint8_t rx_len)
-{
-    uint8_t i;
-    
-    /* 发送数据 */
-    for (i = 0; i < tx_len; i++) {
-        spi_read(tx_data[i]);
-    }
-    
-    /* 接收数据 */
-    for (i = 0; i < rx_len; i++) {
-        rx_data[i] = spi_read(0xFF);
+    SPI_I2S_SendData(SPICh, comm);
+    // 等待发送缓冲区空，发送完成
+    while (SPI_I2S_GetFlagStatus(SPICh, SPI_I2S_FLAG_TXE) == RESET)
+    {
+        if (j > 0xff)
+        {
+            break;      
+        }
+        j++;
     }
 }
 
 /**
- * @brief 通过 SPI 发送一组字节
- * @param length 数据长度
- * @param data 数据缓冲区指针
+ * @brief SPI 读取数据
+ * @param SPICh SPI 通道
+ * @param comm LTC6804指令
+ * @param data 存储读取到的数据
+ * @param len 读取数据长度
+ * @note 读取指定长度数据（需持续发送dummy）
  */
-void spi_write_array(uint8_t length, uint8_t *data)
+void SPIRead(SPI_TypeDef* SPICh, u16 comm, u8* data, u8 len)
 {
-    uint8_t i;
-    for (i = 0; i < length; i++) {
-        spi_write((int8_t)data[i]);
+    u8 j = 0;
+
+    SPIWriteByte(SPICh, comm);
+    *data = SPI_I2S_ReceiveData(SPICh); // 读取无效数据
+    for (u8 i = 0; i < len; i++)
+    {
+        SPIWriteByte(SPICh, 0xff); // 发送空数据以产生时钟
+        *data = SPI_I2S_ReceiveData(SPICh);
+        while (SPI_I2S_GetFlagStatus(SPICh, SPI_I2S_FLAG_RXNE) == RESET)  // 等待接收缓冲区空，接收完成
+        {
+            if (j > 0xff)
+            {
+                break;
+            }
+            j++;
+        }
+        data++;
     }
 }
 
-/* ==================== GPIO 管脚控制 ==================== */
-
-/**
- * @brief 设置 GPIO 管脚为低电平
- * @param pin GPIO 管脚号
- */
-void output_low(uint8_t pin)
-{
-    if (pin == QUIKEVAL_CS) {
-        GPIO_ResetBits(SPI_GPIO_PORT, SPI_PIN_CS);
-    }
-}
-
-/**
- * @brief 设置 GPIO 管脚为高电平
- * @param pin GPIO 管脚号
- */
-void output_high(uint8_t pin)
-{
-    if (pin == QUIKEVAL_CS) {
-        GPIO_SetBits(SPI_GPIO_PORT, SPI_PIN_CS);
-    }
-}
-
-/* ==================== 延时函数 ==================== */
-
-/**
- * @brief 延时（毫秒）
- * @param ms 毫秒数
- */
-void delay(uint32_t ms)
-{
-    /* 配置 SysTick 为 1ms */
-    if (SysTick_Config(SystemCoreClock / 1000) == 0) {
-        g_systick_ms = ms;
-        while (g_systick_ms > 0);
-    }
-}
-
-/**
- * @brief 延时（微秒）
- * @param us 微秒数
- * @note 使用简单循环延时，精度依赖于编译器优化和 CPU 速度
- */
-void delayMicroseconds(uint32_t us)
-{
-    /* 对于 72MHz STM32F103，每个循环约 10 个时钟周期
-       调整这个系数以适应你的实际硬件 */
-    volatile uint32_t i = us * 7;
-    while (i--);
-}
 
