@@ -5,7 +5,7 @@
 /*---------------- 接口函数声明 ----------------*/
 void LTC6804Wakeup(void);
 void LTC6804SendCommand(u16 command);
-void LTC6804StartADC(void);
+void LTC6804StartADC(u8 md, u8 dcp, u8 ch);
 void LTC6804ReadCellVoltages(u8 total_ic);
 void LTC6804ReadAuxVoltages(u8 total_ic);
 void LTC6804CS(u8 state);
